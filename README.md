@@ -38,13 +38,13 @@ This creates a `train.bin` and `val.bin` in that data directory. Now it is time 
 **I have a GPU**. Great, we can quickly train a baby GPT with the settings provided in the [config/train_shakespeare_char.py](config/train_shakespeare_char.py) config file:
 
 ```sh
-python train.py config/train_shakespeare_char.py
+--python train.py config/train_shakespeare_char.py
 ```
 
 If you peek inside it, you'll see that we're training a GPT with a context size of up to 256 characters, 384 feature channels, and it is a 6-layer Transformer with 6 heads in each layer. On one A100 GPU this training run takes about 3 minutes and the best validation loss is 1.4697. Based on the configuration, the model checkpoints are being written into the `--out_dir` directory `out-shakespeare-char`. So once the training finishes we can sample from the best model by pointing the sampling script at this directory:
 
 ```sh
-python sample.py --out_dir=out-shakespeare-char
+--python sample.py --out_dir=out-shakespeare-char
 ```
 
 This generates a few samples, for example:
@@ -101,6 +101,7 @@ Finally, on Apple Silicon Macbooks and with a recent PyTorch version make sure t
 
 A more serious deep learning professional may be more interested in reproducing GPT-2 results. So here we go - we first tokenize the dataset, in this case the [OpenWebText](https://openwebtext2.readthedocs.io/en/latest/), an open reproduction of OpenAI's (private) WebText:
 
+added trust_remote_code=True parameter to prepare.py load_dataset
 ```sh
 python data/openwebtext/prepare.py
 ```
@@ -153,7 +154,7 @@ However, we have to note that GPT-2 was trained on (closed, never released) WebT
 Finetuning is no different than training, we just make sure to initialize from a pretrained model and train with a smaller learning rate. For an example of how to finetune a GPT on new text go to `data/shakespeare` and run `prepare.py` to download the tiny shakespeare dataset and render it into a `train.bin` and `val.bin`, using the OpenAI BPE tokenizer from GPT-2. Unlike OpenWebText this will run in seconds. Finetuning can take very little time, e.g. on a single GPU just a few minutes. Run an example finetuning like:
 
 ```sh
-python train.py config/finetune_shakespeare.py
+python train.py config/finetune_shakespeare.py --compile=False --device=cpu
 ```
 
 This will load the config parameter overrides in `config/finetune_shakespeare.py` (I didn't tune them much though). Basically, we initialize from a GPT2 checkpoint with `init_from` and train as normal, except shorter and with a small learning rate. If you're running out of memory try decreasing the model size (they are `{'gpt2', 'gpt2-medium', 'gpt2-large', 'gpt2-xl'}`) or possibly decreasing the `block_size` (context length). The best checkpoint (lowest validation loss) will be in the `out_dir` directory, e.g. in `out-shakespeare` by default, per the config file. You can then run the code in `sample.py --out_dir=out-shakespeare`:
